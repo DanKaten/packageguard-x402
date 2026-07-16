@@ -1,6 +1,6 @@
 {
   "name": "packageguard",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "x402-gated agent-to-agent tool: checks whether an npm or PyPI package is safe to install (registry existence, OSV.dev vulnerabilities, typosquat risk, package age). Other AI agents pay $0.005 USDC per call via the x402 protocol.",
   "main": "server.js",
   "scripts": {
@@ -22,7 +22,8 @@
     "axios": "^1.13.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "fast-levenshtein": "^3.0.0"
+    "fast-levenshtein": "^3.0.0",
+    "@x402/extensions": "^2.17.0"
   },
   "engines": {
     "node": ">=18"

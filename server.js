@@ -20,6 +20,7 @@ const { paymentMiddleware, x402ResourceServer } = require("@x402/express");
 const { HTTPFacilitatorClient } = require("@x402/core/server");
 const { ExactEvmScheme } = require("@x402/evm/exact/server");
 const { createFacilitatorConfig } = require("@coinbase/x402");
+const { declareDiscoveryExtension, bazaarResourceServerExtension } = require("@x402/extensions");
 
 const app = express();
 app.use(express.json());
@@ -38,10 +39,9 @@ const facilitatorConfig = usingCdp
   ? createFacilitatorConfig(CDP_ID, CDP_SECRET)
   : { url: "https://x402.org/facilitator" };
 const facilitatorClient = new HTTPFacilitatorClient(facilitatorConfig);
-const resourceServer = new x402ResourceServer(facilitatorClient).register(
-  NETWORK,
-  new ExactEvmScheme(),
-);
+const resourceServer = new x402ResourceServer(facilitatorClient);
+resourceServer.register(NETWORK, new ExactEvmScheme());
+resourceServer.registerExtension(bazaarResourceServerExtension); // makes route Bazaar-discoverable
 
 // ---------------- safety-check logic ----------------
 const POPULAR_NPM = [
@@ -117,13 +117,13 @@ const TOOL_TAGS = ["security","npm","pypi","supply-chain","typosquat","cve","vul
 const OUTPUT_SCHEMA = { type:"object", properties:{ ecosystem:{type:"string",enum:["npm","pypi"]}, package:{type:"string"}, verdict:{type:"string",enum:["safe","caution","unsafe"]}, safetyScore:{type:"number"}, flags:{type:"array",items:{type:"string"}} }, required:["ecosystem","package","verdict","safetyScore","flags"] };
 const INPUT_SCHEMA = { type:"object", properties:{ ecosystem:{type:"string",enum:["npm","pypi"],description:"Package ecosystem to check"}, name:{type:"string",description:"Exact package name to check for safety before installing"} }, required:["ecosystem","name"], additionalProperties:false };
 
-app.get("/health", (req,res)=> res.json({ ok:true, service:"packageguard", version:"2.0.0", network:NETWORK, facilitator: usingCdp?"cdp":"fallback" }));
+app.get("/health", (req,res)=> res.json({ ok:true, service:"packageguard", version:"2.1.0", network:NETWORK, facilitator: usingCdp?"cdp":"fallback" }));
 
 // ---- MCP discovery (unpaid): initialize + tools/list ----
 app.post("/mcp", (req, res, next) => {
   const { method, id } = req.body || {};
   if (method === "initialize") {
-    return res.json({ jsonrpc:"2.0", id, result:{ protocolVersion:"2024-11-05", capabilities:{ tools:{} }, serverInfo:{ name:"PackageGuard", version:"2.0.0" } } });
+    return res.json({ jsonrpc:"2.0", id, result:{ protocolVersion:"2024-11-05", capabilities:{ tools:{} }, serverInfo:{ name:"PackageGuard", version:"2.1.0" } } });
   }
   if (method === "tools/list") {
     return res.json({ jsonrpc:"2.0", id, result:{ tools:[{ name:"check_package_safety", description:TOOL_DESCRIPTION, inputSchema:INPUT_SCHEMA, outputSchema:OUTPUT_SCHEMA, annotations:{ readOnlyHint:true, destructiveHint:false, idempotentHint:true, openWorldHint:true } }] } });
@@ -138,7 +138,16 @@ app.use(paymentMiddleware({
     accepts: [{ scheme:"exact", price:PRICE, network:NETWORK, payTo:RECEIVE_ADDRESS }],
     description: TOOL_DESCRIPTION,
     mimeType: "application/json",
+    serviceName: "PackageGuard",
+    tags: TOOL_TAGS,
     outputSchema: OUTPUT_SCHEMA,
+    extensions: declareDiscoveryExtension({
+      method: "POST",
+      input: { ecosystem: "npm", name: "express" },
+      inputSchema: INPUT_SCHEMA,
+      bodyType: "json",
+      output: { example: { ecosystem:"npm", package:"express", verdict:"safe", safetyScore:100, flags:[] } },
+    }),
   },
 }, resourceServer));
 
