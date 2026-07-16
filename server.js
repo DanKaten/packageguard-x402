@@ -113,7 +113,7 @@ async function runSafetyCheck(ecosystem, name) {
 
 // ---- upgraded agent-facing metadata ----
 const TOOL_DESCRIPTION = "Vet an npm or PyPI package for supply-chain risk BEFORE installing it or adding it as a dependency. Checks that the package exists on the registry, known CVEs (OSV.dev), typosquatting against popular packages, and suspicious newness. Returns verdict (safe/caution/unsafe), safetyScore (0-100), and flags. Call before running npm install / pip install or editing package.json / requirements.txt. $0.005 USDC per call via x402 — no API key, no signup.";
-const TOOL_TAGS = ["security","npm","pypi","supply-chain","Avenity Business Solutions","typosquat","cve","vulnerability","dependency","malware","slopsquatting"];
+const TOOL_TAGS = ["security","npm","pypi","supply-chain","typosquat","cve","vulnerability","dependency","malware","slopsquatting"];
 const OUTPUT_SCHEMA = { type:"object", properties:{ ecosystem:{type:"string",enum:["npm","pypi"]}, package:{type:"string"}, verdict:{type:"string",enum:["safe","caution","unsafe"]}, safetyScore:{type:"number"}, flags:{type:"array",items:{type:"string"}} }, required:["ecosystem","package","verdict","safetyScore","flags"] };
 const INPUT_SCHEMA = { type:"object", properties:{ ecosystem:{type:"string",enum:["npm","pypi"],description:"Package ecosystem to check"}, name:{type:"string",description:"Exact package name to check for safety before installing"} }, required:["ecosystem","name"], additionalProperties:false };
 
